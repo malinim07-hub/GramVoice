@@ -9,17 +9,18 @@ import { translations } from "../translations/translations.ts";
 
 type Language = "en" | "ta";
 
+type TranslationKey = keyof typeof translations.en;
+
 interface LanguageContextType {
   language: Language;
   setLanguage: (language: Language) => void;
   toggleLanguage: () => void;
-  t: (key: keyof typeof translations.en) => string;
+  t: (key: TranslationKey) => string;
 }
 
-const LanguageContext =
-  createContext<LanguageContextType | undefined>(
-    undefined
-  );
+const LanguageContext = createContext<
+  LanguageContextType | undefined
+>(undefined);
 
 export const LanguageProvider: React.FC<{
   children: React.ReactNode;
@@ -29,9 +30,7 @@ export const LanguageProvider: React.FC<{
       const savedLanguage =
         localStorage.getItem("gv_language");
 
-      return savedLanguage === "ta"
-        ? "ta"
-        : "en";
+      return savedLanguage === "ta" ? "ta" : "en";
     });
 
   useEffect(() => {
@@ -53,10 +52,11 @@ export const LanguageProvider: React.FC<{
     );
   };
 
-  const t = (
-    key: keyof typeof translations.en
-  ) => {
-    return translations[language][key];
+  const t = (key: TranslationKey): string => {
+    const currentTranslations =
+      translations[language] as typeof translations.en;
+
+    return currentTranslations[key];
   };
 
   return (

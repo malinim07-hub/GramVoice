@@ -448,15 +448,7 @@ const ReportIssue = () => {
     return labels[category] || category;
   };
 
-  const urgencyLabel = (urgency: string) => {
-    const labels: Record<string, string> = {
-      Low: t("low"),
-      Medium: t("medium"),
-      High: t("high"),
-      Critical: t("critical"),
-    };
-    return labels[urgency] || urgency;
-  };
+  
 
   // =========================================================
   // TRANSLATE FORM
