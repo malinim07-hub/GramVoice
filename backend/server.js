@@ -19,6 +19,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
 app.use("/api/uploads", require("./routes/uploadRoutes"));
+app.use("/api/ai", require("./routes/aiRoutes"));
 
 app.get("/", (req, res) => {
   res.send("Backend Running");
