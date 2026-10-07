@@ -1,3 +1,5 @@
+// src/services/gemini.ts
+
 export interface GeminiAnalysisResult {
   isValidCivicIssue: boolean;
   rejectionReason?: string;
@@ -8,139 +10,202 @@ export interface GeminiAnalysisResult {
   suggestedActions: string[];
 }
 
-// Pre-defined sample simulations for a smooth offline presentation demo
-export const DEMO_ISSUES: Record<string, GeminiAnalysisResult & { imageName: string; imagePath: string }> = {
-  pothole: {
-    isValidCivicIssue: true,
-    title: "Severe Road Damage & Deep Potholes",
-    description: "Multiple large, deep potholes observed in the middle of a two-lane asphalt road. The damage poses a high risk to motorcyclists and can cause severe vehicle alignment issues. Water is starting to accumulate in the depressions, which will accelerate further road erosion.",
-    category: "Roads & Traffic",
-    urgency: "High",
-    suggestedActions: [
-      "Fill potholes immediately with cold mix asphalt patch.",
-      "Place safety traffic cones or warning barriers around the area.",
-      "Schedule complete road resurfacing for this section."
-    ],
-    imageName: "pothole.jpg",
-    imagePath: "https://images.unsplash.com/photo-1515162305285-0293e4767cc2?auto=format&fit=crop&w=600&q=80"
-  },
-  garbage: {
-    isValidCivicIssue: true,
-    title: "Overflowing Public Garbage Dump",
-    description: "A large municipal garbage bin is overflowing onto the public pavement and road. Piles of plastic wastes, household garbage, and organic wastes are scattered around, producing a strong foul odor and attracting stray dogs and flies, posing a severe public health hazard.",
-    category: "Sanitation & Waste Management",
-    urgency: "Critical",
-    suggestedActions: [
-      "Deploy sanitation trucks to clear the accumulated garbage immediately.",
-      "Disinfect the area using bleaching powder or lime spray.",
-      "Increase garbage collection frequency in this locality."
-    ],
-    imageName: "garbage.jpg",
-    imagePath: "https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=600&q=80"
-  },
-  streetlight: {
-    isValidCivicIssue: true,
-    title: "Non-Functional Streetlights in Residential Lane",
-    description: "Two consecutive public streetlights are completely burned out, leaving a stretch of approximately 100 meters in absolute darkness. Residents report feeling unsafe walking at night, and there is an increased risk of petty crimes or pedestrians tripping on uneven sidewalks.",
-    category: "Electricity & Public Lighting",
-    urgency: "Medium",
-    suggestedActions: [
-      "Replace burnt-out sodium bulbs with new energy-efficient LED bulbs.",
-      "Inspect the local wiring and distributor switchbox for circuit failures.",
-      "Update municipal lighting logs for routine inspection."
-    ],
-    imageName: "streetlight.jpg",
-    imagePath: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=600&q=80"
-  },
-  waterleak: {
-    isValidCivicIssue: true,
-    title: "Major Water Main Pipe Leakage",
-    description: "Clean potable water is gushing out from a ruptured underground pipe joint, flooding the sidewalk and forming large pools on the adjacent street. Hundreds of liters of water are being wasted every hour, and the surrounding ground is getting waterlogged, which could compromise road foundations.",
-    category: "Water Supply & Sewage",
-    urgency: "Critical",
-    suggestedActions: [
-      "Isolate the local water pipeline section to stop the flow.",
-      "Excavate and repair the cracked pipe joint or valve.",
-      "Restore water pressure and monitor for pressure drops."
-    ],
-    imageName: "waterleak.jpg",
-    imagePath: "https://images.unsplash.com/photo-1542013936693-8848e5742383?auto=format&fit=crop&w=600&q=80"
+/* =========================================================
+   DEMO DATA
+   ========================================================= */
+
+export const DEMO_ISSUES: Record<
+  string,
+  GeminiAnalysisResult & {
+    imageName: string;
+    imagePath: string;
   }
+> = {
+  pothole: {
+    imageName: "Pothole / Road Damage",
+    imagePath: "/demo/pothole.jpg",
+
+    isValidCivicIssue: true,
+
+    title: "Severe Road Damage and Deep Potholes",
+
+    description:
+      "Multiple potholes and damaged asphalt are visible on the road. " +
+      "The damaged surface may create a safety risk for two-wheelers, " +
+      "cars and pedestrians.",
+
+    category: "Roads & Traffic",
+
+    urgency: "High",
+
+    suggestedActions: [
+      "Inspect the damaged road section",
+      "Repair or fill the potholes",
+      "Check surrounding road surface for further damage",
+      "Place temporary warning signs if required",
+    ],
+  },
+
+  garbage: {
+    imageName: "Garbage Accumulation",
+    imagePath: "/demo/garbage.jpg",
+
+    isValidCivicIssue: true,
+
+    title: "Garbage Accumulation in Public Area",
+
+    description:
+      "A significant amount of waste is visible in the reported area. " +
+      "The waste accumulation may create hygiene and environmental concerns.",
+
+    category: "Sanitation & Waste Management",
+
+    urgency: "Medium",
+
+    suggestedActions: [
+      "Remove the accumulated waste",
+      "Clean and sanitize the surrounding area",
+      "Inspect whether a regular waste collection schedule is available",
+      "Provide or improve waste collection facilities if required",
+    ],
+  },
+
+  streetlight: {
+    imageName: "Broken Streetlight",
+    imagePath: "/demo/streetlight.jpg",
+
+    isValidCivicIssue: true,
+
+    title: "Damaged Streetlight",
+
+    description:
+      "The image shows a damaged streetlight with visible issues around " +
+      "the lighting fixture. This may reduce visibility during nighttime.",
+
+    category: "Electricity & Public Lighting",
+
+    urgency: "Medium",
+
+    suggestedActions: [
+      "Inspect the streetlight and electrical connection",
+      "Repair or replace the damaged lighting fixture",
+      "Check nearby streetlights for similar issues",
+      "Restore proper nighttime illumination",
+    ],
+  },
+
+  waterleak: {
+    imageName: "Water Leakage",
+    imagePath: "/demo/waterleak.jpg",
+
+    isValidCivicIssue: true,
+
+    title: "Water Leakage from Public Pipeline",
+
+    description:
+      "Visible water leakage is present in the reported location. " +
+      "Continuous leakage may result in water wastage and damage to the road.",
+
+    category: "Water Supply",
+
+    urgency: "High",
+
+    suggestedActions: [
+      "Inspect the nearby water pipeline",
+      "Identify and repair the leakage",
+      "Check whether the surrounding road has been damaged",
+      "Restore normal water flow",
+    ],
+  },
 };
 
-/**
- * Analyzes a civic issue image using Gemini multimodal REST API.
- * Falls back to simulation mode if no API key is provided, or if the API call fails.
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+const delay = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+
+const getGeminiApiKey = (): string => {
+  const localKey = localStorage.getItem("gv_gemini_key");
+
+  const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+  return (localKey || envKey || "").trim();
+};
+
+
+/*
+ * Models are tried one by one.
  */
-export async function analyzeCivicIssue(
+const GEMINI_MODELS = [
+  "gemini-3.8-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-2.5-flash",
+];
+
+
+/* =========================================================
+   GEMINI API CALL
+   ========================================================= */
+
+const callGemini = async (
+  promptText: string,
   imageBase64: string,
-  imageMimeType: string,
-  latitude?: number,
-  longitude?: number,
-  demoKey?: string
-): Promise<GeminiAnalysisResult> {
-  const apiKey = localStorage.getItem("gv_gemini_key") || import.meta.env.VITE_GEMINI_API_KEY || "";
-  
-  // 1. If we are matching a demo preset, return it directly to speed up the presentation
-  if (demoKey && DEMO_ISSUES[demoKey]) {
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate realistic network delay
-    return DEMO_ISSUES[demoKey];
-  }
+  imageMimeType: string
+): Promise<GeminiAnalysisResult> => {
+  const apiKey = getGeminiApiKey();
 
-  // 2. If no API key is available, run simulation mode for custom uploads
   if (!apiKey) {
-    await new Promise((resolve) => setTimeout(resolve, 3000)); // Simulate thinking delay
-    
-    // Heuristic: pick a random civic issue since we cannot analyze without a key
-    const keys = Object.keys(DEMO_ISSUES);
-    const randomKey = keys[Math.floor(Math.random() * keys.length)];
-    const result = { ...DEMO_ISSUES[randomKey] };
-    result.title = `[Simulated] ${result.title}`;
-    result.description = `[Simulation Fallback] This is a simulated AI analysis of your image because no live API key was configured. Set up your Gemini API Key in the Profile tab.\n\nDescription: ${result.description}`;
-    return result;
+    throw new Error("Gemini API key is missing.");
   }
 
-  try {
-    const promptText = `
-You are an expert AI municipal inspector assisting a local government. Analyze the attached image of a reported issue in a public space.
-Your job is to:
-1. Verify if the image shows a valid public/civic issue that a local government/municipality is responsible for (e.g. pothole, garbage dump, broken streetlight, water pipe leak, damaged sidewalk, public property vandalism, open manhole, fallen tree blocking road, etc.).
-2. If the image is a selfie, meme, document, indoor private room, or unrelated to public infrastructure/sanitation, set "isValidCivicIssue" to false and explain why in "rejectionReason".
-3. If it is a valid issue:
-   - Provide a concise, official "title".
-   - Provide a detailed "description" of the issue, including its potential risks and impacts.
-   - Categorize the issue into one of these standard departments: "Roads & Traffic", "Sanitation & Waste Management", "Water Supply & Sewage", "Electricity & Public Lighting", "Public Parks & Forestry", or "General Infrastructure".
-   - Grade the "urgency" level as "Low", "Medium", "High", or "Critical".
-   - List 3 immediate "suggestedActions" for the maintenance crew.
+  /*
+   * Remove the Base64 data URL prefix.
+   *
+   * Example:
+   *
+   * data:image/jpeg;base64,XXXXXXXX
+   *
+   * becomes:
+   *
+   * XXXXXXXX
+   */
+  const base64Data = imageBase64.replace(
+    /^data:image\/[a-zA-Z0-9.+-]+;base64,/,
+    ""
+  );
 
-Respond ONLY with a valid JSON object matching the following structure:
-{
-  "isValidCivicIssue": true,
-  "rejectionReason": null,
-  "title": "Clear issue title",
-  "description": "Detailed description of the issue.",
-  "category": "Department Name",
-  "urgency": "Low/Medium/High/Critical",
-  "suggestedActions": ["action 1", "action 2", "action 3"]
-}
+  let lastError = "";
 
-Contextual Location (if available): Lat ${latitude ?? "unknown"}, Lon ${longitude ?? "unknown"}.
-`;
+  for (const model of GEMINI_MODELS) {
+    try {
+      console.log(`Trying Gemini model: ${model}`);
 
-    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+      const url =
+        `https://generativelanguage.googleapis.com/v1beta/models/` +
+        `${model}:generateContent`;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
+      const response = await fetch(url, {
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
+
+          /*
+           * Gemini API key
+           */
+          "x-goog-api-key": apiKey,
         },
+
         body: JSON.stringify({
           contents: [
             {
               parts: [
-                { text: promptText },
+                {
+                  text: promptText,
+                },
                 {
                   inlineData: {
                     mimeType: imageMimeType,
@@ -150,157 +215,454 @@ Contextual Location (if available): Lat ${latitude ?? "unknown"}, Lon ${longitud
               ],
             },
           ],
+
           generationConfig: {
             responseMimeType: "application/json",
             temperature: 0.1,
           },
         }),
+      });
+
+      /*
+       * If Gemini returns an error,
+       * capture the complete error response.
+       */
+      if (!response.ok) {
+        const errorText = await response.text();
+
+        lastError =
+          `Model ${model} failed with ${response.status}: ${errorText}`;
+
+        console.error(lastError);
+
+        continue;
       }
-    );
 
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText} (${response.status})`);
+      const data = await response.json();
+
+      console.log(`Gemini model succeeded: ${model}`);
+
+      const responseText =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!responseText) {
+        throw new Error(
+          `Gemini returned an empty response from model ${model}.`
+        );
+      }
+
+      /*
+       * Remove markdown code fences if Gemini returns them.
+       */
+      const cleanJson = responseText
+        .replace(/```json/gi, "")
+        .replace(/```/g, "")
+        .trim();
+
+      const result = JSON.parse(cleanJson);
+
+      return {
+        isValidCivicIssue:
+          result.isValidCivicIssue === true,
+
+        rejectionReason:
+          result.rejectionReason || undefined,
+
+        title:
+          result.title || "Civic Issue Detected",
+
+        description:
+          result.description ||
+          "Civic issue detected from the image.",
+
+        category:
+          result.category || "Other",
+
+        urgency:
+          ["Low", "Medium", "High", "Critical"].includes(
+            result.urgency
+          )
+            ? result.urgency
+            : "Medium",
+
+        suggestedActions:
+          Array.isArray(result.suggestedActions)
+            ? result.suggestedActions
+            : [],
+      };
+    } catch (error) {
+      lastError =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+      console.error(
+        `Gemini request failed for ${model}:`,
+        error
+      );
+
+      continue;
     }
-
-    const data = await response.json();
-    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!responseText) {
-      throw new Error("Empty response from Gemini model.");
-    }
-
-    const cleanJson = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-    const result: GeminiAnalysisResult = JSON.parse(cleanJson);
-    return result;
-  } catch (error) {
-    console.error("Gemini API call failed, falling back to simulation:", error);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    const result = { ...DEMO_ISSUES.pothole };
-    result.title = `[Auto-recovered] Potholes and Asphalt Crack Detected`;
-    result.description = `[Fall-back Simulation due to connection/API error] ${result.description}`;
-    return result;
   }
-}
 
-/**
- * Translates text between languages using Gemini API.
- * Falls back to simple mock prefixing if offline or no key is present.
- */
-export async function translateText(
-  text: string,
-  sourceLang: string,
-  targetLang: string
-): Promise<string> {
-  const apiKey = localStorage.getItem("gv_gemini_key") || import.meta.env.VITE_GEMINI_API_KEY || "";
+  throw new Error(
+    `All Gemini models failed. Last error: ${lastError}`
+  );
+};
 
-  if (!text.trim()) return "";
+
+/* =========================================================
+   CIVIC ISSUE ANALYSIS
+   ========================================================= */
+
+export const analyzeCivicIssue = async (
+  imageBase64: string,
+  imageMimeType: string,
+  latitude?: number,
+  longitude?: number,
+  demoKey?: string
+): Promise<GeminiAnalysisResult> => {
+
+  /*
+   * -------------------------------------------------------
+   * DEMO MODE
+   * -------------------------------------------------------
+   */
+
+  if (demoKey && DEMO_ISSUES[demoKey]) {
+    await delay(1500);
+
+    return DEMO_ISSUES[demoKey];
+  }
+
+  const apiKey = getGeminiApiKey();
+
+  /*
+   * -------------------------------------------------------
+   * NO API KEY
+   * -------------------------------------------------------
+   */
 
   if (!apiKey) {
-    try {
-      const response = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        if (data.responseData?.translatedText) {
-          // If translation is successful, return it
-          return data.responseData.translatedText;
-        }
-      }
-    } catch (e) {
-      console.warn("MyMemory translation fallback failed:", e);
-    }
+    console.warn(
+      "Gemini API key not configured. Using simulation mode."
+    );
 
-    // Hardcode some simple mock outputs for UI testing when offline and fetch fails
-    const nameMap: Record<string, string> = {
-      en: "English",
-      ta: "Tamil",
-      es: "Spanish",
-      fr: "French",
-      de: "German",
-      ja: "Japanese",
-      zh: "Chinese",
-      hi: "Hindi"
+    await delay(2500);
+
+    const keys = Object.keys(DEMO_ISSUES);
+
+    const randomKey =
+      keys[Math.floor(Math.random() * keys.length)];
+
+    const demoResult = {
+      ...DEMO_ISSUES[randomKey],
     };
 
-    const targetName = nameMap[targetLang] || targetLang;
+    return {
+      isValidCivicIssue:
+        demoResult.isValidCivicIssue,
 
-    const lowerText = text.trim().toLowerCase().replace(/[?.,!]/g, "");
-    if (lowerText === "severe road damage & deep potholes" && targetLang === "ta") {
-      return "கடுமையான சாலை சேதம் மற்றும் ஆழமான பள்ளங்கள்";
-    }
-    if (lowerText === "overflowing public garbage dump" && targetLang === "ta") {
-      return "அளவுக்கு அதிகமாக நிரம்பி வழியும் பொது குப்பை தொட்டி";
-    }
-    if (lowerText === "non-functional streetlights in residential lane" && targetLang === "ta") {
-      return "குடியிருப்பு தெருவில் எரியாத தெரு விளக்குகள்";
-    }
-    if (lowerText === "major water main pipe leakage" && targetLang === "ta") {
-      return "முக்கிய குடிநீர் குழாயில் பெரும் கசிவு";
-    }
+      rejectionReason:
+        demoResult.rejectionReason,
 
-    if (targetLang === "ta") {
-      return `[தமிழ்] ${text}`;
-    }
-    if (targetLang === "en") {
-      // Remove mock Tamil tags if translating back
-      return text.replace(/^\[தமிழ்\]\s*/, "").replace(/\s*\(மொழிபெயர்க்கப்பட்டது\)/, "");
-    }
-    return `[Translated to ${targetName}] ${text}`;
+      title:
+        `[Simulated] ${demoResult.title}`,
+
+      description:
+        `[Simulation Fallback] This is a simulated AI analysis ` +
+        `because no live Gemini API key was configured.\n\n` +
+        `${demoResult.description}`,
+
+      category:
+        demoResult.category,
+
+      urgency:
+        demoResult.urgency,
+
+      suggestedActions:
+        demoResult.suggestedActions,
+    };
   }
 
+  /* =======================================================
+     LIVE GEMINI PROMPT
+     ======================================================= */
 
-  try {
-    const sourceName = sourceLang === "ta" ? "Tamil" : sourceLang === "en" ? "English" : sourceLang;
-    const targetName = targetLang === "ta" ? "Tamil" : targetLang === "en" ? "English" : targetLang;
+  const promptText = `
+You are an AI assistant helping a municipal civic issue reporting system.
 
-    const promptText = `
-You are a professional translator. Translate the following text from ${sourceName} to ${targetName}.
-Provide a natural, accurate, and grammatically correct translation.
-If translating to Tamil, use clear and readable Tamil characters (தமிழ்).
-Maintain the original meaning and tone.
-Return ONLY the translated text. Do not include any explanations, introduction, markdown quotes, or notes.
+Analyze the uploaded image as a municipal inspector.
 
-Text to translate:
-"${text}"
+Your task is to determine whether the image contains a genuine
+public/civic infrastructure issue that should be reported to
+a government or local authority.
+
+Possible civic issues include:
+
+- potholes
+- damaged roads
+- garbage accumulation
+- broken streetlights
+- water leakage
+- drainage problems
+- public safety infrastructure problems
+- other public infrastructure problems
+
+Do NOT invent details that are not visible in the image.
+
+Return ONLY valid JSON.
+
+The JSON must have exactly this structure:
+
+{
+  "isValidCivicIssue": true,
+  "rejectionReason": null,
+  "title": "Short issue title",
+  "description": "Clear description of what is visible",
+  "category": "Roads & Traffic",
+  "urgency": "Low",
+  "suggestedActions": [
+    "Action 1",
+    "Action 2"
+  ]
+}
+
+Allowed category values:
+
+- Roads & Traffic
+- Sanitation & Waste Management
+- Electricity & Public Lighting
+- Water Supply
+- Drainage
+- Public Safety
+- Other
+
+Allowed urgency values:
+
+- Low
+- Medium
+- High
+- Critical
+
+Rules:
+
+1. Only mark isValidCivicIssue true when a real civic/public issue
+   is visible in the image.
+
+2. If the image is unrelated to civic infrastructure, set:
+   "isValidCivicIssue": false
+
+3. If the issue is invalid, provide a short rejectionReason.
+
+4. Do not identify private individuals.
+
+5. Do not make medical or legal conclusions.
+
+6. Base the analysis primarily on visible evidence.
+
+7. Give practical actions that a municipal department could take.
+
+8. Keep the title short and clear.
+
+9. Keep the description factual.
+
+10. Return JSON only.
+    No markdown.
+    No explanation outside JSON.
+
+Location context:
+
+Latitude: ${latitude ?? "Not available"}
+
+Longitude: ${longitude ?? "Not available"}
 `;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
+  try {
+    const result = await callGemini(
+      promptText,
+      imageBase64,
+      imageMimeType
+    );
+
+    console.log(
+      "Live Gemini analysis result:",
+      result
+    );
+
+    return result;
+
+  } catch (error) {
+
+    /*
+     * Keep fallback behavior so the application
+     * doesn't completely break if Gemini fails.
+     */
+
+    console.error(
+      "Gemini API call failed. Falling back to simulation:",
+      error
+    );
+
+    await delay(1500);
+
+    const fallback = {
+      ...DEMO_ISSUES.pothole,
+    };
+
+    return {
+      isValidCivicIssue: true,
+
+      title:
+        "[Auto-recovered] Potholes and Asphalt Crack Detected",
+
+      description:
+        "[Fallback Simulation due to Gemini API error] " +
+        fallback.description,
+
+      category:
+        fallback.category,
+
+      urgency:
+        fallback.urgency,
+
+      suggestedActions:
+        fallback.suggestedActions,
+    };
+  }
+};
+
+
+/* =========================================================
+   TEXT TRANSLATION
+   ========================================================= */
+
+export const translateText = async (
+  text: string,
+  sourceLanguage: string,
+  targetLanguage: string
+): Promise<string> => {
+
+  /*
+   * If both languages are the same,
+   * no translation is required.
+   */
+  if (sourceLanguage === targetLanguage) {
+    return text;
+  }
+
+  const apiKey = getGeminiApiKey();
+
+  /*
+   * -------------------------------------------------------
+   * NO API KEY
+   * -------------------------------------------------------
+   */
+
+  if (!apiKey) {
+    console.warn(
+      "Gemini API key not available for translation."
+    );
+
+    return text;
+  }
+
+  /*
+   * -------------------------------------------------------
+   * TRANSLATION PROMPT
+   * -------------------------------------------------------
+   */
+
+  const prompt = `
+Translate the following civic issue text from ${sourceLanguage}
+to ${targetLanguage}.
+
+Requirements:
+
+- Preserve the original meaning.
+- Use simple language that ordinary citizens can understand.
+- Do not add new information.
+- Do not remove important information.
+- Return only the translated text.
+
+Text:
+
+${text}
+`;
+
+  /*
+   * -------------------------------------------------------
+   * GEMINI TRANSLATION
+   * -------------------------------------------------------
+   */
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      console.log(
+        `Trying Gemini translation model: ${model}`
+      );
+
+      const url =
+        `https://generativelanguage.googleapis.com/v1beta/models/` +
+        `${model}:generateContent`;
+
+      const response = await fetch(url, {
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
         },
+
         body: JSON.stringify({
           contents: [
             {
-              parts: [{ text: promptText }],
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
             },
           ],
+
           generationConfig: {
-            temperature: 0.3,
+            temperature: 0.2,
           },
         }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+
+        console.error(
+          `Translation failed using ${model}:`,
+          errorText
+        );
+
+        continue;
       }
-    );
 
-    if (!response.ok) {
-      throw new Error(`Gemini translation API status error: ${response.statusText}`);
-    }
+      const data = await response.json();
 
-    const data = await response.json();
-    const translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!translatedText) {
-      throw new Error("Empty response from translation model.");
-    }
+      const translatedText =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    return translatedText.trim();
-  } catch (error) {
-    console.error("Gemini translateText failed:", error);
-    if (targetLang === "ta") {
-      return `[தமிழ்] ${text} (Offline)`;
+      if (translatedText) {
+        return translatedText.trim();
+      }
+
+    } catch (error) {
+
+      console.error(
+        `Translation error using ${model}:`,
+        error
+      );
     }
-    return `[Translation Fallback] ${text}`;
   }
-}
 
+  /*
+   * If every Gemini model fails,
+   * return the original text.
+   */
+  return text;
+};
