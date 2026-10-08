@@ -1,27 +1,14 @@
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
 
 const { uploadImage } = require("../controllers/uploadController");
 const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "../uploads"));
-  },
-
-  filename: (req, file, cb) => {
-    const extension = path.extname(file.originalname).toLowerCase();
-
-    const uniqueName = `gramvoice-${Date.now()}-${Math.round(
-      Math.random() * 1e9
-    )}${extension}`;
-
-    cb(null, uniqueName);
-  },
-});
+// Store uploaded image temporarily in memory.
+// We will send it directly to Cloudinary.
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [

@@ -1,5 +1,10 @@
-const path = require("path");
-const fs = require("fs");
+const cloudinary = require("cloudinary").v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const uploadImage = async (req, res) => {
   try {
@@ -9,20 +14,30 @@ const uploadImage = async (req, res) => {
       });
     }
 
-    const imageUrl = `/uploads/${req.file.filename}`;
+    const result = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: "gramvoice",
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result);
+          }
+        }
+      );
+
+      uploadStream.end(req.file.buffer);
+    });
 
     res.status(201).json({
       message: "Image uploaded successfully",
-      imageUrl,
-      filename: req.file.filename,
+      imageUrl: result.secure_url,
+      filename: result.public_id,
     });
   } catch (error) {
-    console.error("Image Upload Error:", error);
-
-    // Remove uploaded file if something goes wrong
-    if (req.file?.path && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
+    console.error("Cloudinary Upload Error:", error);
 
     res.status(500).json({
       message: "Server error while uploading image",
