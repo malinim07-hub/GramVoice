@@ -4,7 +4,7 @@ const genAI = new GoogleGenerativeAI(
   process.env.GEMINI_API_KEY
 );
 
-// Primary model first, fallback model second
+// Try models in this order
 const GEMINI_MODELS = [
   "gemini-3.8-flash",
   "gemini-3.7-flash",
@@ -12,6 +12,18 @@ const GEMINI_MODELS = [
 
 const sleep = (ms) =>
   new Promise((resolve) => setTimeout(resolve, ms));
+
+const isTemporaryError = (error) => {
+  const message = error?.message?.toLowerCase() || "";
+
+  return (
+    message.includes("503") ||
+    message.includes("429") ||
+    message.includes("high demand") ||
+    message.includes("temporarily unavailable") ||
+    message.includes("service unavailable")
+  );
+};
 
 const analyzeCivicIssue = async (
   imageBase64,
@@ -111,129 +123,114 @@ Longitude: ${longitude ?? "Not available"}
 
   let lastError;
 
+  /*
+   * Try each Gemini model.
+   *
+   * If a model gives a temporary 503/429 error,
+   * immediately move to the next model instead of
+   * wasting a long time retrying the same model.
+   */
+
   for (const modelName of GEMINI_MODELS) {
-    // Retry each model up to 3 times
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        console.log(
-          `Trying Gemini model: ${modelName} | Attempt: ${attempt}`
-        );
+    try {
+      console.log(
+        `Trying Gemini model: ${modelName}`
+      );
 
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-        });
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+      });
 
-        const result = await model.generateContent([
-          {
-            text: prompt,
+      const result = await model.generateContent([
+        {
+          text: prompt,
+        },
+        {
+          inlineData: {
+            mimeType: imageMimeType,
+            data: cleanBase64,
           },
-          {
-            inlineData: {
-              mimeType: imageMimeType,
-              data: cleanBase64,
-            },
-          },
-        ]);
+        },
+      ]);
 
-        const response = result.response;
-        const text = response.text();
+      const response = result.response;
+      const text = response.text();
 
-        console.log("Gemini raw response:", text);
+      console.log(
+        `Gemini ${modelName} raw response:`,
+        text
+      );
 
-        const cleanJson = text
-          .replace(/```json/gi, "")
-          .replace(/```/g, "")
-          .trim();
+      const cleanJson = text
+        .replace(/```json/gi, "")
+        .replace(/```/g, "")
+        .trim();
 
-        const parsed = JSON.parse(cleanJson);
+      const parsed = JSON.parse(cleanJson);
 
-        return {
-          isValidCivicIssue:
-            parsed.isValidCivicIssue === true,
+      return {
+        isValidCivicIssue:
+          parsed.isValidCivicIssue === true,
 
-          rejectionReason:
-            parsed.rejectionReason || undefined,
+        rejectionReason:
+          parsed.rejectionReason || undefined,
 
-          title:
-            parsed.title ||
-            "Civic Issue Detected",
+        title:
+          parsed.title ||
+          "Civic Issue Detected",
 
-          description:
-            parsed.description ||
-            "Civic issue detected from the image.",
+        description:
+          parsed.description ||
+          "Civic issue detected from the image.",
 
-          category:
-            parsed.category || "Other",
+        category:
+          parsed.category || "Other",
 
-          urgency: [
-            "Low",
-            "Medium",
-            "High",
-            "Critical",
-          ].includes(parsed.urgency)
-            ? parsed.urgency
-            : "Medium",
+        urgency: [
+          "Low",
+          "Medium",
+          "High",
+          "Critical",
+        ].includes(parsed.urgency)
+          ? parsed.urgency
+          : "Medium",
 
-          suggestedActions:
-            Array.isArray(
-              parsed.suggestedActions
-            )
-              ? parsed.suggestedActions
-              : [],
-        };
-      } catch (error) {
-        lastError = error;
+        suggestedActions:
+          Array.isArray(
+            parsed.suggestedActions
+          )
+            ? parsed.suggestedActions
+            : [],
+      };
+    } catch (error) {
+      lastError = error;
 
-        console.error(
-          `Gemini model ${modelName} failed on attempt ${attempt}:`,
-          error.message
-        );
+      console.error(
+        `Gemini model ${modelName} failed:`,
+        error.message
+      );
 
-        /*
-         * Retry only temporary server/capacity errors.
-         *
-         * 503 = model temporarily unavailable
-         * 429 = rate limit / temporary capacity issue
-         */
-
-        const isTemporaryError =
-          error.message.includes("503") ||
-          error.message.includes("429") ||
-          error.message
-            .toLowerCase()
-            .includes("high demand") ||
-          error.message
-            .toLowerCase()
-            .includes("temporarily unavailable");
-
-        if (!isTemporaryError) {
-          // Don't waste retries on permanent errors
-          break;
-        }
-
-        // If this was the final attempt,
-        // move to the fallback model.
-        if (attempt === 3) {
-          console.log(
-            `Moving to next Gemini model after ${modelName} failures...`
-          );
-          break;
-        }
-
-        // Exponential backoff:
-        // Attempt 1 → wait 2 sec
-        // Attempt 2 → wait 4 sec
-        const waitTime =
-          2000 * Math.pow(2, attempt - 1);
-
+      /*
+       * Temporary error:
+       * immediately try the next model.
+       */
+      if (isTemporaryError(error)) {
         console.log(
-          `Temporary Gemini error. Retrying in ${
-            waitTime / 1000
-          } seconds...`
+          `Temporary error on ${modelName}. Trying next Gemini model...`
         );
 
-        await sleep(waitTime);
+        continue;
       }
+
+      /*
+       * Permanent error:
+       * don't keep trying other models unnecessarily.
+       */
+      console.log(
+        `Non-temporary Gemini error on ${modelName}.`
+      );
+
+      break;
     }
   }
 
